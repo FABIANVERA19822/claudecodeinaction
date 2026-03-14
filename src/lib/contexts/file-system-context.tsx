@@ -27,6 +27,7 @@ interface FileSystemContextType {
   refreshTrigger: number;
   handleToolCall: (toolCall: ToolCall) => void;
   reset: () => void;
+  loadFromNodes: (nodes: Record<string, any>) => void;
 }
 
 const FileSystemContext = createContext<FileSystemContextType | undefined>(
@@ -142,6 +143,16 @@ export function FileSystemProvider({
     triggerRefresh();
   }, [fileSystem, triggerRefresh]);
 
+  const loadFromNodes = useCallback(
+    (nodes: Record<string, any>) => {
+      fileSystem.reset();
+      fileSystem.deserializeFromNodes(nodes);
+      setSelectedFile(null);
+      triggerRefresh();
+    },
+    [fileSystem, triggerRefresh]
+  );
+
   const handleToolCall = useCallback(
     (toolCall: ToolCall) => {
       const { toolName, args } = toolCall;
@@ -226,6 +237,7 @@ export function FileSystemProvider({
         refreshTrigger,
         handleToolCall,
         reset,
+        loadFromNodes,
       }}
     >
       {children}

@@ -5,19 +5,22 @@ import {
   useContext,
   ReactNode,
   useEffect,
+  useRef,
+  useState,
+  useCallback,
 } from "react";
 import { useChat as useAIChat } from "@ai-sdk/react";
-import { Message } from "ai";
+import { DefaultChatTransport } from "ai";
 import { useFileSystem } from "./file-system-context";
 import { setHasAnonWork } from "@/lib/anon-work-tracker";
 
 interface ChatContextProps {
   projectId?: string;
-  initialMessages?: Message[];
+  initialMessages?: any[];
 }
 
 interface ChatContextType {
-  messages: Message[];
+  messages: any[];
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -31,25 +34,49 @@ export function ChatProvider({
   projectId,
   initialMessages = [],
 }: ChatContextProps & { children: ReactNode }) {
-  const { fileSystem, handleToolCall } = useFileSystem();
+  const { fileSystem, loadFromNodes } = useFileSystem();
+  const [input, setInput] = useState("");
 
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    status,
-  } = useAIChat({
-    api: "/api/chat",
-    initialMessages,
-    body: {
-      files: fileSystem.serialize(),
-      projectId,
-    },
-    onToolCall: ({ toolCall }) => {
-      handleToolCall(toolCall);
-    },
+  const { messages, sendMessage, status } = useAIChat({
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    messages: initialMessages,
   });
+
+  // When the server finishes, it sends the final VFS state via message metadata.
+  // Load it into the client VFS to trigger the preview refresh.
+  const processedMessageIds = useRef(new Set<string>());
+  useEffect(() => {
+    for (const message of messages) {
+      if (message.role !== "assistant") continue;
+      const meta = (message as any).metadata;
+      if (
+        meta?.files &&
+        !processedMessageIds.current.has(message.id)
+      ) {
+        processedMessageIds.current.add(message.id);
+        loadFromNodes(meta.files);
+      }
+    }
+  }, [messages, loadFromNodes]);
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setInput(e.target.value);
+    },
+    []
+  );
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      if (!input.trim()) return;
+      sendMessage({ text: input }, {
+        body: { files: fileSystem.serialize(), projectId },
+      });
+      setInput("");
+    },
+    [input, sendMessage, fileSystem, projectId]
+  );
 
   // Track anonymous work
   useEffect(() => {
@@ -62,7 +89,7 @@ export function ChatProvider({
     <ChatContext.Provider
       value={{
         messages,
-        input: input ?? "",
+        input,
         handleInputChange,
         handleSubmit,
         status,

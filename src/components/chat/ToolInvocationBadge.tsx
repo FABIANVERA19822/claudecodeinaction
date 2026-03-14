@@ -1,8 +1,6 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import type { ToolInvocation } from "ai";
-
 export function getToolLabel(toolName: string, args: any): string {
   const filename = args?.path ? args.path.split("/").pop() : null;
 
@@ -26,15 +24,16 @@ export function getToolLabel(toolName: string, args: any): string {
 }
 
 interface ToolInvocationBadgeProps {
-  toolInvocation: ToolInvocation;
+  part: any;
 }
 
-export function ToolInvocationBadge({ toolInvocation }: ToolInvocationBadgeProps) {
-  const label = getToolLabel(toolInvocation.toolName, toolInvocation.args);
-  const isDone = toolInvocation.state === "result" && (toolInvocation as any).result;
+export function ToolInvocationBadge({ part }: ToolInvocationBadgeProps) {
+  const toolName = part.toolName ?? part.type?.replace(/^tool-/, "") ?? "tool";
+  const label = getToolLabel(toolName, part.input ?? part.args);
+  const isDone = part.state === "output-available" || part.state === "result";
 
   return (
-    <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 bg-neutral-50 rounded-lg text-xs font-mono border border-neutral-200">
+    <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 bg-neutral-50 rounded-lg text-xs font-mono border border-neutral-200" suppressHydrationWarning>
       {isDone ? (
         <>
           <div className="w-2 h-2 rounded-full bg-emerald-500" />

@@ -46,5 +46,5 @@ export const buildStrReplaceTool = (fileSystem: VirtualFileSystem) => {
           return `Error: undo_edit command is not supported in this version. Use str_replace to revert changes.`;
       }
     },
-  };
+  });
 };

@@ -1,13 +1,8 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import {
-  LanguageModelV1,
-  LanguageModelV1StreamPart,
-  LanguageModelV1Message,
-} from "@ai-sdk/provider";
 
-const MODEL = "claude-haiku-4-5";
+const MODEL = "claude-sonnet-4-6";
 
-export class MockLanguageModel implements LanguageModelV1 {
+export class MockLanguageModel {
   readonly specificationVersion = "v1" as const;
   readonly provider = "mock";
   readonly modelId: string;
@@ -21,7 +16,7 @@ export class MockLanguageModel implements LanguageModelV1 {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private extractUserPrompt(messages: LanguageModelV1Message[]): string {
+  private extractUserPrompt(messages: any[]): string {
     // Find the last user message
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
@@ -41,7 +36,7 @@ export class MockLanguageModel implements LanguageModelV1 {
     return "";
   }
 
-  private getLastToolResult(messages: LanguageModelV1Message[]): any {
+  private getLastToolResult(messages: any[]): any {
     // Find the last tool message
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "tool") {
@@ -55,9 +50,9 @@ export class MockLanguageModel implements LanguageModelV1 {
   }
 
   private async *generateMockStream(
-    messages: LanguageModelV1Message[],
+    messages: any[],
     userPrompt: string
-  ): AsyncGenerator<LanguageModelV1StreamPart> {
+  ): AsyncGenerator<any> {
     // Count tool messages to determine which step we're on
     const toolMessageCount = messages.filter((m) => m.role === "tool").length;
 
@@ -422,13 +417,11 @@ export default function App() {
 }`;
   }
 
-  async doGenerate(
-    options: Parameters<LanguageModelV1["doGenerate"]>[0]
-  ): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
+  async doGenerate(options: any): Promise<any> {
     const userPrompt = this.extractUserPrompt(options.prompt);
 
     // Collect all stream parts
-    const parts: LanguageModelV1StreamPart[] = [];
+    const parts: any[] = [];
     for await (const part of this.generateMockStream(
       options.prompt,
       userPrompt
@@ -474,13 +467,11 @@ export default function App() {
     };
   }
 
-  async doStream(
-    options: Parameters<LanguageModelV1["doStream"]>[0]
-  ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
+  async doStream(options: any): Promise<any> {
     const userPrompt = this.extractUserPrompt(options.prompt);
     const self = this;
 
-    const stream = new ReadableStream<LanguageModelV1StreamPart>({
+    const stream = new ReadableStream<any>({
       async start(controller) {
         try {
           const generator = self.generateMockStream(options.prompt, userPrompt);
